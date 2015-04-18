@@ -38,6 +38,7 @@
 
   (if (env :dev) (parser/cache-off!))
   (client/create "localhost" 1234)
+  (client/start-message-reader)
   ;;start the expired session cleanup job
   (cronj/start! session/cleanup-job)
   (timbre/info "\n-=[ chat-ui started successfully"

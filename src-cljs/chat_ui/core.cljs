@@ -24,10 +24,10 @@
 
 (def user (atom nil))
 (def messages (atom []))
+(def users (atom []))
 
 (defn side-bar []
-  (let [users (atom ["Bob" "Jane" "Alice"])
-        selected-user (atom nil)]
+  (let [selected-user (atom nil)]
     (fn []
       [:ul.list-group
        (into
@@ -50,6 +50,10 @@
   (POST "/login"
         {:params {:user @user-text}
          :handler #(reset! user @user-text)}))
+
+(defn get-users []
+  (GET "/users"
+       {:handler #(println %)}))
 
 (defn send-message! [message error]
   (POST "/message"
@@ -117,6 +121,7 @@
 (defn init! []
   (secretary/set-config! :prefix "#")
   (session/put! :page :home)
+  (get-users)
   (mount-components))
 
 
