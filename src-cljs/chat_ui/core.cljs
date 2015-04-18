@@ -46,9 +46,10 @@
      ^{:key message}
      [:p message])])
 
-(defn login! [user]
+(defn login! [user-text]
   (POST "/login"
-        {:params {:user @user}}))
+        {:params {:user @user-text}
+         :handler #(reset! user @user-text)}))
 
 (defn send-message! [message error]
   (POST "/message"
@@ -79,9 +80,14 @@
         "send"]])))
 
 (defn login-page []
-  [:div
-   [:label "login"]
-   [input-field user]])
+  (let [user-text (atom nil)]
+    (fn []
+      [:div
+       [:label "login"]
+       [input-field user-text]
+       [:button.btn.btn-primary
+        {:on-click #(login! user-text)}
+        "login"]])))
 
 (defn home-page []
   [:div
