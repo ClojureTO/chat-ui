@@ -24,7 +24,8 @@
                  [reagent-utils "0.1.4"]
                  [secretary "1.2.3"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [cljs-ajax "0.3.10"]]
+                 [cljs-ajax "0.3.10"]
+                 [chat-client "0.1"]]
 
   :min-lein-version "2.0.0"
   :uberjar-name "chat-ui.jar"
@@ -37,19 +38,19 @@
             [lein-environ "1.0.0"]
             [lein-ancient "0.6.5"]
             [lein-cljsbuild "1.0.4"]]
-  
 
-  
+
+
 
   :ring {:handler chat-ui.handler/app
          :init    chat-ui.handler/init
          :destroy chat-ui.handler/destroy
          :uberwar-name "chat-ui.war"}
-  
-  
+
+
   :clean-targets ^{:protect false} ["resources/public/js"]
-  
-  
+
+
   :cljsbuild
   {:builds
    {:app
@@ -60,8 +61,8 @@
       :optimizations :none
       :output-to "resources/public/js/app.js"
       :pretty-print true}}}}
-  
-  
+
+
   :profiles
   {:uberjar {:omit-source true
              :env {:production true}
@@ -71,8 +72,8 @@
                :builds
                {:app
                 {:source-paths ["env/prod/cljs"]
-                 :compiler {:optimizations :advanced :pretty-print false}}}} 
-             
+                 :compiler {:optimizations :advanced :pretty-print false}}}}
+
              :aot :all}
    :dev {:dependencies [[ring-mock "0.1.5"]
                         [ring/ring-devel "1.3.2"]
@@ -83,22 +84,22 @@
                         [com.cemerick/piggieback "0.2.0"]
                         [org.clojure/tools.nrepl "0.2.10"]]
          :source-paths ["env/dev/clj"]
-         
+
          :plugins [[lein-figwheel "0.2.5"]]
-         
+
           :cljsbuild
           {:builds
            {:app
-            {:source-paths ["env/dev/cljs"] :compiler {:source-map true}}}} 
-         
-         
+            {:source-paths ["env/dev/cljs"] :compiler {:source-map true}}}}
+
+
          :figwheel
          {:http-server-root "public"
           :server-port 3449
           :css-dirs ["resources/public/css"]
           :ring-handler chat-ui.handler/app}
-         
-         
+
+
          :repl-options {:init-ns chat-ui.repl}
          :injections [(require 'pjstadig.humane-test-output)
                       (pjstadig.humane-test-output/activate!)]

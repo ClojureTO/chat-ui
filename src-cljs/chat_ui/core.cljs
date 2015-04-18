@@ -3,7 +3,8 @@
             [secretary.core :as secretary]
             [reagent.session :as session]
             [reagent-forms.core :refer [bind-fields]]
-            [ajax.core :refer [GET POST]])
+            [ajax.core :refer [GET POST]]
+            [chat-ui.client :refer [poll]])
   (:require-macros [secretary.core :refer [defroute]]))
 
 (defn navbar []
@@ -21,7 +22,8 @@
 (defn about-page []
   [:div "this is the story of chat-ui... work in progress"])
 
-(def messages (atom ["message 1" "message 2" "message 3"]))
+(def user (atom nil))
+(def messages (atom []))
 
 (defn side-bar []
   (let [users (atom ["Bob" "Jane" "Alice"])
@@ -44,34 +46,52 @@
      ^{:key message}
      [:p message])])
 
+(defn login! [user]
+  (POST "/login"
+        {:params {:user @user}}))
+
 (defn send-message! [message error]
   (POST "/message"
         {:params {:message @message}
          :handler #(do
-                    (println %)
+                    (swap! messages conj @message)
                     (reset! message nil))
          :error-handler #(reset! error (:response %))}))
+
+(defn value-of [event]
+  (-> event .-target .-value))
+
+(defn input-field [container]
+  [:input.form-control
+   {:type :text
+    :value @container
+    :on-change #(reset! container (value-of %))}])
 
 (defn message-component []
   (let [message (atom nil)
         error (atom nil)]
     (fn []
-
       [:div
        (if-let [error @error] [:p "Error" error])
-       [:input {:type :text
-                     :value @message
-                     :on-change #(reset! message (-> % .-target .-value))}]
-       [:button {:on-click #(send-message! message error)}
+       [input-field message]
+       [:button.btn.btn-primary
+        {:on-click #(send-message! message error)}
         "send"]])))
+
+(defn login-page []
+  [:div
+   [:label "login"]
+   [input-field user]])
 
 (defn home-page []
   [:div
-   [:div.row
-    [:div.col-sm-2 [side-bar]]
-    [:div.col-md-4
-     [message-list @messages]
-     [message-component]]]
+   (if @user
+     [:div.row
+      [:div.col-sm-2 [side-bar]]
+      [:div.col-md-4
+       [message-list @messages]
+       [message-component]]]
+     [login-page])
    ])
 
 (def pages

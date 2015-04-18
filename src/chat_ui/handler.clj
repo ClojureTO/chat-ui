@@ -1,7 +1,7 @@
 (ns chat-ui.handler
   (:require [compojure.core :refer [defroutes routes]]
             [chat-ui.routes.home :refer [home-routes]]
-            
+            [chat-ui.client :as client]
             [chat-ui.middleware
              :refer [development-middleware production-middleware]]
             [chat-ui.session :as session]
@@ -11,6 +11,8 @@
             [selmer.parser :as parser]
             [environ.core :refer [env]]
             [cronj.core :as cronj]))
+
+
 
 (defroutes base-routes
   (route/resources "/")
@@ -35,6 +37,7 @@
     {:path "chat_ui.log" :max-size (* 512 1024) :backlog 10})
 
   (if (env :dev) (parser/cache-off!))
+  (client/create "localhost" 1234)
   ;;start the expired session cleanup job
   (cronj/start! session/cleanup-job)
   (timbre/info "\n-=[ chat-ui started successfully"
@@ -45,13 +48,14 @@
    shuts down, put any clean up code here"
   []
   (timbre/info "chat-ui is shutting down...")
+  (client/close)
   (cronj/shutdown! session/cleanup-job)
   (timbre/info "shutdown complete!"))
 
 (def app
   (-> (routes
         home-routes
-        
+
         base-routes)
       development-middleware
       production-middleware))

@@ -2,7 +2,9 @@
   (:require [chat-ui.layout :as layout]
             [compojure.core :refer [defroutes GET POST]]
             [ring.util.response :refer [response]]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [chat-client.core :as client]
+            [chat-ui.client :refer [chat-client]]))
 
 (defn home-page []
   (layout/render
@@ -12,10 +14,13 @@
   (layout/render "about.html"))
 
 (defroutes home-routes
-           (GET "/" [] (home-page))
-           (POST "/message" [message]
-                 (println message)
-                 (response
-                   {:result    :ok
-                    :timestamp (java.util.Date.)}))
-           (GET "/about" [] (about-page)))
+  (GET "/" [] (home-page))
+  (POST "/login" [user]
+        (client/send-message chat-client (str "USER " user))
+        (response {:result :ok}))
+  (POST "/message" [message]
+        (println message)
+        (response
+         {:result    :ok
+          :timestamp (java.util.Date.)}))
+  (GET "/about" [] (about-page)))
