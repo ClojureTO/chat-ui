@@ -1,7 +1,7 @@
 (ns chat-ui.test.handler
-  (:use clojure.test
-        ring.mock.request
-        chat-ui.handler))
+  (:require [clojure.test :refer :all]
+            [ring.mock.request :refer :all]
+            [chat-ui.handler :refer :all]))
 
 (deftest test-app
   (testing "main route"

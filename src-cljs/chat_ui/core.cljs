@@ -1,127 +1,47 @@
 (ns chat-ui.core
   (:require [reagent.core :as reagent :refer [atom]]
-            [secretary.core :as secretary]
-            [reagent.session :as session]
-            [reagent-forms.core :refer [bind-fields]]
-            [ajax.core :refer [GET POST]]
-            [chat-ui.client :refer [poll]])
-  (:require-macros [secretary.core :refer [defroute]]))
+            [chat-ui.client :as client]))
 
-(defn navbar []
-  [:div.navbar.navbar-inverse.navbar-fixed-top
-   [:div.container
-    [:div.navbar-header
-     [:a.navbar-brand {:href "#/"} "chat-ui"]]
-    [:div.navbar-collapse.collapse
-     [:ul.nav.navbar-nav
-      [:li {:class (when (= :home (session/get :page)) "active")}
-       [:a {:on-click #(secretary/dispatch! "#/")} "Home"]]
-      [:li {:class (when (= :about (session/get :page)) "active")}
-       [:a {:on-click #(secretary/dispatch! "#/about")} "About"]]]]]])
+(defonce messages (atom []))
 
-(defn about-page []
-  [:div "this is the story of chat-ui... work in progress"])
+(defn message-list []
+  [:ul
+   (for [[i message] (map-indexed vector @messages)]
+     ^{:key i}
+     [:li message])])
 
-(def user (atom nil))
-(def messages (atom []))
-(def users (atom []))
-
-(defn side-bar []
-  (let [selected-user (atom nil)]
+(defn message-input []
+  (let [value (atom nil)]
     (fn []
-      [:ul.list-group
-       (into
-         [:ul]
-         (map
-           (fn [user]
-             [:li.list-group-item
-              {:class    (if (= user @selected-user) "selected" "unselected")
-               :on-click #(reset! selected-user user)}
-              user])
-           @users))])))
-
-(defn message-list [messages]
-  [:div
-   (for [message messages]
-     ^{:key message}
-     [:p message])])
-
-(defn login! [user-text]
-  (POST "/login"
-        {:params {:user @user-text}
-         :handler #(reset! user @user-text)}))
-
-(defn get-users []
-  (GET "/users"
-       {:handler #(println %)}))
-
-(defn send-message! [message error]
-  (POST "/message"
-        {:params {:message @message}
-         :handler #(do
-                    (swap! messages conj @message)
-                    (reset! message nil))
-         :error-handler #(reset! error (:response %))}))
-
-(defn value-of [event]
-  (-> event .-target .-value))
-
-(defn input-field [container]
-  [:input.form-control
-   {:type :text
-    :value @container
-    :on-change #(reset! container (value-of %))}])
-
-(defn message-component []
-  (let [message (atom nil)
-        error (atom nil)]
-    (fn []
-      [:div
-       (if-let [error @error] [:p "Error" error])
-       [input-field message]
-       [:button.btn.btn-primary
-        {:on-click #(send-message! message error)}
-        "send"]])))
-
-(defn login-page []
-  (let [user-text (atom nil)]
-    (fn []
-      [:div
-       [:label "login"]
-       [input-field user-text]
-       [:button.btn.btn-primary
-        {:on-click #(login! user-text)}
-        "login"]])))
+      [:input.form-control
+       {:type :text
+        :placeholder "type in a message and press enter"
+        :value @value
+        :on-change #(reset! value (-> % .-target .-value))
+        :on-key-down
+        #(when (= (.-keyCode %) 13)
+           (client/send-transit-msg!
+            {:message @value})
+           (reset! value nil))}])))
 
 (defn home-page []
-  [:div
-   (if @user
-     [:div.row
-      [:div.col-sm-2 [side-bar]]
-      [:div.col-md-4
-       [message-list @messages]
-       [message-component]]]
-     [login-page])
-   ])
+  [:div.container
+   [:div.row
+    [:div.col-md-12
+     [:h2 "Welcome to chat"]]]
+   [:div.row
+    [:div.col-sm-6
+     [message-list]]]
+   [:div.row
+    [:div.col-sm-6
+     [message-input]]]])
 
-(def pages
-  {:home  home-page
-   :about about-page})
-
-(defn page []
-  [(pages (session/get :page))])
-
-(defroute "/" [] (session/put! :page :home))
-(defroute "/about" [] (session/put! :page :about))
+(defn update-messages! [{:keys [message]}]
+  (swap! messages #(vec (take 10 (conj % message)))))
 
 (defn mount-components []
-  (reagent/render-component [navbar] (.getElementById js/document "navbar"))
-  (reagent/render-component [page] (.getElementById js/document "app")))
+  (reagent/render-component [#'home-page] (.getElementById js/document "app")))
 
 (defn init! []
-  (secretary/set-config! :prefix "#")
-  (session/put! :page :home)
-  (get-users)
+  (client/make-websocket! (str "ws://" (.-host js/location) "/ws") update-messages!)
   (mount-components))
-
-
